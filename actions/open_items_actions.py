@@ -2,7 +2,7 @@ import os
 import time
 import cv2
 from utils.image_utils import find_and_click_button, check_button_exists
-from utils.adb_utils import adb_command, set_device, is_real_device_id, take_screenshot, get_screenshot_path, tap_screen
+from utils.adb_utils import adb_command, set_device, is_real_device_id, tap_screen
 from utils.language_utils import get_image_path
 
 
@@ -95,11 +95,11 @@ def _template_path(item_image):
 
 
 def capture_screen(device_id):
-    """Chụp 1 ảnh gắn đúng device, giống Advanced Rally."""
+    """Chụp 1 ảnh gắn đúng device — trả về frame BGR in-memory."""
+    from utils.screen import capture
+
     _set_device(device_id)
-    if not take_screenshot(device_id=device_id):
-        return None
-    return cv2.imread(get_screenshot_path(device_id))
+    return capture(device_id=device_id, force=True)
 
 
 def find_selected_item(item_templates, screenshot, threshold=ITEM_MATCH_THRESHOLD):

@@ -10,48 +10,43 @@ def get_screenshot_filename(device_id=None):
     return os.path.basename(get_screenshot_path(device_id))
 
 def find_button_on_screen(button_image_path, device_id=None, threshold=0.95):
-    """Tìm vị trí của nút trên màn hình"""
+    """Tìm vị trí của nút trên màn hình (match trên frame in-memory)."""
     try:
-        # Đọc ảnh mẫu
         template = cv2.imread(button_image_path)
         if template is None:
             print(f"Không thể đọc ảnh mẫu: {button_image_path}")
             return None
-            
-        # Chụp và đọc ảnh màn hình của đúng device
-        from utils.adb_utils import take_screenshot, get_screenshot_path, set_device, is_real_device_id
+
+        from utils.adb_utils import set_device, is_real_device_id
+        from utils.screen import capture, save_debug
+
         if is_real_device_id(device_id):
             set_device(device_id)
-        if not take_screenshot(device_id=device_id):
+
+        screen = capture(device_id=device_id, force=False)
+        if screen is None:
+            print(f"Không thể chụp màn hình device {device_id}")
             return None
 
-        screen = cv2.imread(get_screenshot_path(device_id))
-        if screen is None:
-            print(f"Không thể đọc ảnh màn hình: {get_screenshot_path(device_id)}")
-            return None
-            
-        # Thêm xử lý ảnh để cải thiện độ chính xác
         screen_gray = cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY)
         template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
-        
-        # Áp dụng Gaussian blur để giảm nhiễu
-        screen_gray = cv2.GaussianBlur(screen_gray, (5,5), 0)
-        template_gray = cv2.GaussianBlur(template_gray, (5,5), 0)
-            
-        # Tìm kiếm template trong ảnh màn hình
+
+        screen_gray = cv2.GaussianBlur(screen_gray, (5, 5), 0)
+        template_gray = cv2.GaussianBlur(template_gray, (5, 5), 0)
+
         result = cv2.matchTemplate(screen_gray, template_gray, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-        
-        # Kiểm tra độ chính xác
+
         if max_val >= threshold:
             h, w = template.shape[:2]
             center_x = max_loc[0] + w // 2
             center_y = max_loc[1] + h // 2
             print(f"Tìm thấy nút với độ chính xác: {max_val:.2f} trên device {device_id}")
             return (center_x, center_y)
-        else:
-            print(f"Không tìm thấy nút với độ chính xác đủ cao: {max_val:.2f} trên device {device_id}")
-            return None
+
+        print(f"Không tìm thấy nút với độ chính xác đủ cao: {max_val:.2f} trên device {device_id}")
+        save_debug(screen, device_id, tag="miss")
+        return None
     except Exception as e:
         print(f"Lỗi khi tìm nút trên màn hình device {device_id}: {e}")
         return None
@@ -143,32 +138,27 @@ def find_and_click_button(button_name, device_id=None, wait_time=1, max_retries=
     return False
 def find_button_position(button_image_path, device_id=None, threshold=0.95):
     """Tìm vị trí và kích thước của nút trên màn hình"""
-    try:    
-        # Đọc ảnh mẫu và ảnh màn hình
+    try:
         template = cv2.imread(button_image_path)
         if template is None:
             print(f"Không thể đọc ảnh mẫu: {button_image_path}")
             return None
-            
-        # Chụp màn hình hiện tại của đúng device
-        from utils.adb_utils import take_screenshot, get_screenshot_path, set_device, is_real_device_id
+
+        from utils.adb_utils import set_device, is_real_device_id
+        from utils.screen import capture, save_debug
+
         if is_real_device_id(device_id):
             set_device(device_id)
-        if not take_screenshot(device_id=device_id):
+
+        screen = capture(device_id=device_id, force=False)
+        if screen is None:
+            print(f"Không thể chụp màn hình device {device_id}")
             return None
 
-        screen = cv2.imread(get_screenshot_path(device_id))
-        if screen is None:
-            print(f"Không thể đọc ảnh màn hình: {get_screenshot_path(device_id)}")
-            return None
-            
-        # Tìm kiếm template trong ảnh màn hình
         result = cv2.matchTemplate(screen, template, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-        
-        # Kiểm tra độ chính xác
+
         if max_val >= threshold:
-            # Tính toán kích thước và vị trí của nút
             h, w = template.shape[:2]
             return {
                 'x': max_loc[0],
@@ -182,9 +172,10 @@ def find_button_position(button_image_path, device_id=None, threshold=0.95):
                 'bottom_center_x': max_loc[0] + w // 2,
                 'bottom_center_y': max_loc[1] + h
             }
-        else:
-            print(f"Không tìm thấy nút với độ chính xác đủ cao: {max_val} trên device {device_id}")
-            return None
+
+        print(f"Không tìm thấy nút với độ chính xác đủ cao: {max_val} trên device {device_id}")
+        save_debug(screen, device_id, tag="miss_pos")
+        return None
     except Exception as e:
         print(f"Lỗi khi tìm nút trên màn hình device {device_id}: {e}")
         return None

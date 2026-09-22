@@ -53,7 +53,10 @@ auto-evony-v2/
 └── build.py
 ```
 
-## Notes
+## Screen capture
 
-- Single entry flow only (`main.py`). Alternate GUIs/CLIs removed.
-- Target device resolution: 400×800.
+- Template UI: `images/en|vi/...` (git)
+- Runtime frames: in-memory + optional `.cache/screenshots/` (gitignore)
+- Capture: `adb exec-out screencap -p` (fallback pull nếu cần)
+- Frame cache ~350ms giữa các lần match liên tiếp; invalidate sau tap/swipe
+- Debug dump: set env `EVONY_DEBUG_SCREEN=1`

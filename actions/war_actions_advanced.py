@@ -5,7 +5,16 @@ import time
 import cv2
 import numpy as np
 import os
-from utils.adb_utils import take_screenshot, tap_screen, swipe_down, swipe_up, get_screen_size
+from utils.adb_utils import tap_screen, swipe_down, swipe_up, get_screen_size
+from utils.screen import capture as capture_screen_frame
+
+
+def _load_screen(device_id, force=True):
+    """Chụp frame in-memory (thay take_screenshot + imread)."""
+    frame = capture_screen_frame(device_id=device_id, force=force)
+    if frame is None:
+        print("❌ Không thể chụp screenshot")
+    return frame
 
 def get_boss_image_path(boss_name, language="en"):
     """Get path to boss image"""
@@ -21,27 +30,10 @@ def find_all_boss_positions(selected_bosses, device_id):
     Trả về list các tuple (x, y, width, height, boss_name)
     """
     try:
-        import os
-        import cv2
-        from utils.adb_utils import take_screenshot, get_screenshot_path
-        
         print(f"🔍 Tìm tất cả boss trong {len(selected_bosses)} boss được chọn")
-        
-        # Chụp screenshot
-        if not take_screenshot(device_id=device_id):
-            print("❌ Không thể chụp screenshot")
-            return []
-        
-        # Load screenshot
-        screenshot_path = get_screenshot_path(device_id)
-        
-        if not os.path.exists(screenshot_path):
-            print(f"❌ File screenshot không tồn tại: {screenshot_path}")
-            return []
-        
-        screenshot = cv2.imread(screenshot_path)
+
+        screenshot = _load_screen(device_id, force=True)
         if screenshot is None:
-            print(f"❌ Không thể đọc screenshot: {screenshot_path}")
             return []
         
         found_bosses = []
@@ -216,22 +208,14 @@ def find_button_position_advanced(button_image_path, device_id=None, threshold =
     Không ảnh hưởng đến utils chung
     """
     try:
-        from utils.adb_utils import take_screenshot, get_screenshot_path
-        import os
-        
         # Đọc ảnh mẫu
         template = cv2.imread(button_image_path)
         if template is None:
             print(f"Không thể đọc ảnh mẫu: {button_image_path}")
             return None
             
-        # Chụp màn hình hiện tại
-        take_screenshot(device_id=device_id)
-        screen_path = get_screenshot_path(device_id)
-            
-        screen = cv2.imread(screen_path)
+        screen = _load_screen(device_id, force=False)
         if screen is None:
-            print(f"Không thể đọc ảnh màn hình: {screen_path}")
             return None
             
         # Tìm kiếm template trong ảnh màn hình
@@ -336,24 +320,9 @@ def check_boss_joined_status(boss_x, boss_y, boss_width, boss_height, device_id)
     try:
         import os
         import cv2
-        from utils.adb_utils import take_screenshot, get_screenshot_path
-        # find_button_position_advanced được định nghĩa trong file này
-        
         # Chụp screenshot
-        if not take_screenshot(device_id=device_id):
-            print("❌ Không thể chụp screenshot")
-            return False
-        
-        # Load screenshot
-        screenshot_path = get_screenshot_path(device_id)
-        
-        if not os.path.exists(screenshot_path):
-            print(f"❌ File screenshot không tồn tại: {screenshot_path}")
-            return False
-        
-        screenshot = cv2.imread(screenshot_path)
+        screenshot = _load_screen(device_id, force=True)
         if screenshot is None:
-            print(f"❌ Không thể đọc screenshot: {screenshot_path}")
             return False
         
         # Tìm button "joined" trong vùng ngay dưới boss
@@ -397,24 +366,9 @@ def find_join_button_below_boss(boss_x, boss_y, boss_width, boss_height, device_
     try:
         import os
         import cv2
-        from utils.adb_utils import take_screenshot, get_screenshot_path
-        # find_button_position_advanced được định nghĩa trong file này
-        
         # Chụp screenshot
-        if not take_screenshot(device_id=device_id):
-            print("❌ Không thể chụp screenshot")
-            return None
-        
-        # Load screenshot
-        screenshot_path = get_screenshot_path(device_id)
-        
-        if not os.path.exists(screenshot_path):
-            print(f"❌ File screenshot không tồn tại: {screenshot_path}")
-            return None
-        
-        screenshot = cv2.imread(screenshot_path)
+        screenshot = _load_screen(device_id, force=True)
         if screenshot is None:
-            print(f"❌ Không thể đọc screenshot: {screenshot_path}")
             return None
         
         # Tìm button "join" trong vùng ngay dưới boss

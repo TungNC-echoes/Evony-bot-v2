@@ -1,7 +1,7 @@
 import time
 from actions.war_actions import join_war_sequence, continue_war_sequence, join_war_sequence_no_general, continue_war_sequence_no_general
 from utils.image_utils import check_button_exists, find_and_click_button
-from utils.adb_utils import swipe_up, swipe_down, adb_command, tap_screen, take_screenshot
+from utils.adb_utils import swipe_up, swipe_down, adb_command, tap_screen
 
 def auto_join_rally(device_id=None, use_general=True, use_assistant_general=False):
     """Hàm chạy bot tự động tham gia chiến tranh"""
@@ -115,13 +115,8 @@ def auto_join_rally(device_id=None, use_general=True, use_assistant_general=Fals
                 scroll_up = not scroll_up
 
         except Exception as e:
-            # print(f"Lỗi trong quá trình chạy bot: {e}")
-            # Nếu có lỗi, chờ thêm 30 giây trước khi thử lại
-            time.sleep(30)            # Cập nhật tất cả các lời gọi hàm check_button_exists và find_and_click_button
-            # bằng cách thêm device_id
-            if check_button_exists("rally/join_button", device_id=device_id):
-                find_and_click_button("rally/join_button", device_id=device_id)
             print(f"Lỗi khi tham gia rally: {e}")
+            time.sleep(30)
 
 def auto_join_advanced_rally_with_boss_selection(device_id=None, use_general=True, selected_bosses=None, use_assistant_general=False):
     """
@@ -358,8 +353,10 @@ def auto_join_advanced_rally_with_boss_selection(device_id=None, use_general=Tru
                     
                     # Chụp ảnh mới sau khi scroll để tìm boss mới
                     print("📸 Chụp ảnh mới sau khi scroll...")
-                    screenshot_filename = f"current_screen_{device_id.replace(':', '_')}.JPG"
-                    if take_screenshot(screenshot_filename, device_id):
+                    from utils.screen import capture, invalidate
+
+                    invalidate(device_id)
+                    if capture(device_id=device_id, force=True) is not None:
                         print("✅ Đã chụp ảnh mới sau scroll")
                     else:
                         print("❌ Không thể chụp ảnh mới sau scroll")

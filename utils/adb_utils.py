@@ -115,16 +115,16 @@ def resolve_adb_serial(device_id=None):
 
 def sanitize_device_key(device_id=None):
     """Key thư mục/file screenshot, luôn cùng một cách thay thế ký tự."""
-    serial = resolve_adb_serial(device_id) or device_id or "default"
-    return str(serial).replace(":", "_").replace(".", "_")
+    from utils.screen import device_key
+
+    return device_key(device_id)
 
 
 def get_screenshot_path(device_id=None):
-    """Một đường dẫn duy nhất cho mỗi device — chỗ ghi và chỗ đọc phải dùng hàm này."""
-    key = sanitize_device_key(device_id)
-    folder = os.path.join("images", f"device_{key}")
-    os.makedirs(folder, exist_ok=True)
-    return os.path.join(folder, f"current_screen_{key}.JPG")
+    """Đường dẫn file cache runtime (.cache/screenshots) — không ghi vào images/."""
+    from utils.screen import screenshot_path
+
+    return screenshot_path(device_id)
 
 
 def adb_command(command, device_id=None):
@@ -160,6 +160,9 @@ def tap_screen(x, y, device_id=None):
         if serial:
             set_device(serial)
         adb_command(f"adb shell input tap {x} {y}", serial or device_id)
+        from utils.screen import invalidate
+
+        invalidate(serial or device_id)
         time.sleep(1)
         return True
     except Exception as e:
@@ -167,10 +170,14 @@ def tap_screen(x, y, device_id=None):
         return False
 
 
-def swipe_screen(x1, y1, x2, y2, duration=500):
+def swipe_screen(x1, y1, x2, y2, duration=500, device_id=None):
     """Thực hiện swipe (vuốt) màn hình"""
     try:
-        adb_command(f"adb shell input swipe {x1} {y1} {x2} {y2} {duration}")
+        serial = resolve_adb_serial(device_id)
+        adb_command(f"adb shell input swipe {x1} {y1} {x2} {y2} {duration}", serial or device_id)
+        from utils.screen import invalidate
+
+        invalidate(serial or device_id)
         time.sleep(1)
         return True
     except Exception as e:
@@ -227,37 +234,18 @@ def swipe_up():
 
 
 def take_screenshot(filename="screenshot.JPG", device_id=None):
-    """Chụp màn hình của đúng 1 device, lưu file riêng. Không dùng exec-out để tránh lẫn stdout."""
+    """
+    Chụp màn hình device (in-memory + ghi .cache để tương thích API cũ).
+    Tham số filename giữ để không phá caller cũ; path thực tế do screen.screenshot_path quyết định.
+    """
     try:
-        serial = resolve_adb_serial(device_id)
-        if not serial:
-            print("take_screenshot: không có serial ADB, bỏ qua")
+        from utils.screen import capture, write_cache_file
+
+        frame = capture(device_id=device_id, force=True)
+        if frame is None:
             return False
-
-        set_device(serial)
-        full_path = get_screenshot_path(serial)
-        remote = f"/sdcard/evony_{sanitize_device_key(serial)}.png"
-
-        subprocess.run(
-            ["adb", "-s", serial, "shell", "screencap", "-p", remote],
-            capture_output=True,
-            timeout=20,
-        )
-        subprocess.run(
-            ["adb", "-s", serial, "pull", remote, full_path],
-            capture_output=True,
-            timeout=20,
-        )
-        subprocess.run(
-            ["adb", "-s", serial, "shell", "rm", "-f", remote],
-            capture_output=True,
-            timeout=10,
-        )
-
-        if not os.path.isfile(full_path) or os.path.getsize(full_path) < 100:
-            print(f"take_screenshot: file rỗng hoặc thiếu cho {serial} ({full_path})")
-            return False
-        return True
+        path = write_cache_file(device_id, frame)
+        return bool(path)
     except Exception as e:
         print(f"Lỗi khi chụp màn hình: {e}")
         return False
@@ -277,6 +265,9 @@ def cancel_action():
     """Hủy thao tác hiện tại bằng cách nhấn ESC và nút cancel"""
     try:
         adb_command('adb shell input keyevent KEYCODE_ESCAPE')
+        from utils.screen import invalidate
+
+        invalidate()
         time.sleep(1)
         from utils.image_utils import find_and_click_button
         if find_and_click_button("cancel"):

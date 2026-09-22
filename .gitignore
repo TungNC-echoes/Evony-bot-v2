@@ -135,6 +135,9 @@ actions/boss_locations.json
 config.local.json
 .iscout_session/
 
+# Runtime screen capture cache (never commit)
+.cache/
+
 # Temporary files
 *.tmp
 *.temp
