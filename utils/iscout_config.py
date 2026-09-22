@@ -20,7 +20,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "password": "",
         "mode": "managed",  # managed | cdp
         "cdp_port": 9014,
-        "login_timeout_sec": 120,
+        "login_timeout_sec": 180,
+        "cloudflare_timeout_sec": 120,
         "headless": False,
     }
 }

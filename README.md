@@ -16,12 +16,16 @@ Commercial fork. **Main entry:** `main.py` (Drag & Drop multi-feature GUI).
 
 1. Nhập Email/Password ở panel **iScout** (bên trái).
 2. Mode:
-   - **Managed**: app tự mở Chrome, login, lưu session (`.iscout_session/`).
-   - **CDP**: gắn vào Chrome đang mở với `--remote-debugging-port=9014`.
-3. Bấm **Login** (lần đầu / khi hết session), rồi **Lấy Boss** để test.
-4. Attack Boss sẽ tự gọi lại `get_boss_locations()` khi cần cập nhật.
+   - **Managed**: app mở Chrome (profile riêng). Có thể gặp Cloudflare — chờ / click Verify trên cửa sổ Chrome.
+   - **CDP (khuyến nghị khi CF khó)**: tự mở Chrome rồi gắn vào:
+     ```text
+     chrome.exe --remote-debugging-port=9014 --user-data-dir=%USERPROFILE%\evony-chrome-profile
+     ```
+     Vào iscout.club, pass Cloudflare thủ công 1 lần, rồi bấm Login / Lấy Boss trong app.
+3. App sẽ: chờ Cloudflare xong → gõ form chậm → thử click Verify human / Turnstile → vào dashboard.
+4. Attack Boss tự gọi lại `get_boss_locations()` khi cần.
 
-Cấu hình lưu tại `config.local.json` (gitignore, không commit).
+Cấu hình: `config.local.json` (gitignore). Chrome profile: `.iscout_session/chrome_profile/`.
 
 ## Run (dev)
 
